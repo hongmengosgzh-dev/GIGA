@@ -12,7 +12,7 @@
     {
       "binding": "DB",
       "database_name": "giga-shop",
-      "database_id": "替换为你的数据库ID",
+      "database_id": "b91c70c7-3616-49a5-8820-b10620851ea0",
       "migrations_dir": "./migrations"
     }
   ]
