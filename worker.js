@@ -1,3 +1,4 @@
+import {publicProducts,quoteProducts} from './lib/storefront.js';
 import {onRequest as admin} from './functions/api/admin.js';
 import {onRequestGet as market} from './functions/api/market.js';
 import {scheduledSync} from './lib/sync.js';
@@ -11,13 +12,17 @@ export default {
       const code=new URL(request.url).searchParams.get('market');
       if(!['US','UK','JP','DE','CA'].includes(code)) return Response.json({error:'Invalid market'},{status:400});
       if(!env.DB) return Response.json({products:[],configured:false},{headers:{'Cache-Control':'no-store'}});
-      const rows=await env.DB.prepare('SELECT payload FROM manual_products WHERE market=? ORDER BY updated_at DESC LIMIT 100').bind(code).all();
-      const products=rows.results.map(r=>JSON.parse(r.payload)).filter(p=>p.status==='published').map(p=>({sku:p.sku,title:p.title,description:p.description,image:p.image,price:p.price,currency:p.currency,stock:p.stock,origin:p.origin,carrier:p.carrier}));
-      const supplier=await env.DB.prepare('SELECT payload FROM giga_products WHERE market=? AND published=1').bind(code).all();
-      const settings=await env.DB.prepare('SELECT pilot_skus FROM market_settings WHERE market=?').bind(code).first();
-      const selected=JSON.parse(settings?.pilot_skus||'[]');
-      products.push(...supplier.results.map(r=>JSON.parse(r.payload)).filter(p=>selected.includes(p.sku)&&!p.error&&p.validUntil>Date.now()&&p.stock>0).map(p=>({sku:p.sku,title:p.title,description:p.description,image:p.image,price:p.price,currency:p.currency,stock:p.stock,origin:p.origin,carrier:p.carrier})));
+      const products=await publicProducts(env,code);
       return Response.json({products,configured:true},{headers:{'Cache-Control':'no-store'}});
+    }
+    if(path==='/api/quote'&&request.method==='POST'){
+      if(request.headers.get('Origin')!==new URL(request.url).origin)return Response.json({error:'Invalid origin'},{status:403});
+      try{
+        const raw=await request.text();if(raw.length>10000)throw Error('Bag too large');const input=JSON.parse(raw);
+        if(!['US','UK','JP','DE','CA'].includes(input.market)||!env.DB)throw Error('Market unavailable');
+        const quote=quoteProducts(await publicProducts(env,input.market),input.lines);
+        return Response.json(quote,{headers:{'Cache-Control':'no-store'}});
+      }catch(e){return Response.json({error:e.message},{status:400,headers:{'Cache-Control':'no-store'}});}
     }
     if(path.startsWith('/api/')) return Response.json({error:'Not found'},{status:404});
     return env.ASSETS.fetch(request);
