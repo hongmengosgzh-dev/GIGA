@@ -21,3 +21,21 @@ $('#addressCountry').onchange=()=>{setPostalHint();$('#addressStatus').textConte
 $('#addressForm').onsubmit=e=>{e.preventDefault();const data=new FormData(e.target),country=data.get('country'),rule=postalRules[country];if(!rule){$('#addressStatus').textContent='Please choose a supported delivery country.';return}if(!rule[0].test(data.get('postal').trim())){const field=$('[name="postal"]');field.setCustomValidity('Enter a valid postal code, for example '+rule[1]);field.reportValidity();return}const destination=country==='GB'?'UK':country;if(destination!==market){applyMarket(destination);cart=[];updateCart();$('#addressStatus').textContent='Your delivery country has changed. The local collection and currency have been updated. Please add items from this collection before continuing.';return}$('#addressStatus').textContent='Address format checked. This is a preview; payment and order placement are not enabled.'};
 const originalUpdateCart=updateCart;updateCart=function(){originalUpdateCart();$('#checkout').disabled=cart.length===0};
 render();updateCart();setPostalHint();locateMarket();
+
+// Published custom products use DOM text nodes, never supplier HTML.
+let publishedProducts=[],productRequest=0;
+const demoRender=render;
+render=function(cat='all'){
+ demoRender(cat);
+ for(const p of publishedProducts){
+  if(cat!=='all')continue;
+  const card=document.createElement('article');card.className='product';
+  const picture=document.createElement('div');picture.className='product-image';const img=document.createElement('img');img.src=p.image;img.alt=p.title;img.loading='lazy';picture.append(img);
+  const info=document.createElement('div');info.className='product-info';const title=document.createElement('div');title.className='product-name';title.textContent=p.title;
+  const meta=document.createElement('div');meta.className='product-meta';const price=document.createElement('span');price.textContent=new Intl.NumberFormat(markets[market].locale,{style:'currency',currency:p.currency}).format(p.price);
+  const button=document.createElement('button');button.className='add';button.textContent=p.stock>0?'Add to bag +':'Sold out';button.disabled=p.stock<=0;button.onclick=()=>add(0,p.title.replace(/[&<>"\']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","\'":"&#39;"}[c])),p.price);meta.append(price,button);info.append(title,meta);card.append(picture,info);$('#products').append(card);
+ }
+};
+const setMarket=applyMarket;
+applyMarket=function(code){publishedProducts=[];setMarket(code);const request=++productRequest;fetch('/api/products?market='+encodeURIComponent(code),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(r=>{if(request!==productRequest||!r)return;publishedProducts=r.products||[];render(activeCategory);}).catch(()=>{});};
+applyMarket(market);

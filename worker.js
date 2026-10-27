@@ -5,6 +5,14 @@ export default {
     const path=new URL(request.url).pathname;
     if(path==='/api/admin') return admin({request,env,waitUntil:ctx.waitUntil.bind(ctx)});
     if(path==='/api/market' && request.method==='GET') return market({request,env});
+    if(path==='/api/products' && request.method==='GET') {
+      const code=new URL(request.url).searchParams.get('market');
+      if(!['US','UK','JP','DE','CA'].includes(code)) return Response.json({error:'Invalid market'},{status:400});
+      if(!env.DB) return Response.json({products:[],configured:false},{headers:{'Cache-Control':'no-store'}});
+      const rows=await env.DB.prepare('SELECT payload FROM manual_products WHERE market=? ORDER BY updated_at DESC LIMIT 100').bind(code).all();
+      const products=rows.results.map(r=>JSON.parse(r.payload)).filter(p=>p.status==='published').map(p=>({sku:p.sku,title:p.title,description:p.description,image:p.image,price:p.price,currency:p.currency,stock:p.stock,origin:p.origin,carrier:p.carrier}));
+      return Response.json({products,configured:true},{headers:{'Cache-Control':'no-store'}});
+    }
     if(path.startsWith('/api/')) return Response.json({error:'Not found'},{status:404});
     return env.ASSETS.fetch(request);
   }

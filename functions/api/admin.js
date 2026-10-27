@@ -1,3 +1,4 @@
+import {manageCatalog} from '../../lib/catalog.js';
 import {markets,readGiga} from '../../lib/giga.js';
 const json=(body,status=200)=>Response.json(body,{status,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
 async function authorized(request,env) {
@@ -15,7 +16,9 @@ export async function onRequest({request,env}) {
   if(Number(request.headers.get('Content-Length'))>4096) return json({error:'请求过大'},413);
   try {
     const raw=await request.text(); if(raw.length>4096) return json({error:'请求过大'},413);
-    const {market,operation,skus,orderNo,page=1}=JSON.parse(raw);
+    const input=JSON.parse(raw);
+    const {market,operation,skus,orderNo,page=1}=input;
+    if(operation?.startsWith('shop.')) return await manageCatalog(env,input);
     if(!markets.includes(market)) return json({error:'请选择有效市场'},400);
     let body;
     if(operation==='catalog') {
