@@ -24,7 +24,7 @@ export async function onRequest({request,env}) {
     if(operation==='catalog') {
       if(!Number.isInteger(page)||page<1) return json({error:'页码无效'},400);
       body={page,pageSize:100,sort:2};
-    } else if(['price','inventory'].includes(operation)) {
+    } else if(['price','inventory','detail'].includes(operation)) {
       if(!Array.isArray(skus)||!skus.length||skus.length>200||skus.some(s=>typeof s!=='string'||!s.trim()||s.length>100)) return json({error:'请输入 1–200 个 SKU'},400);
       body={skus};
     } else if(['status','tracking'].includes(operation)) {

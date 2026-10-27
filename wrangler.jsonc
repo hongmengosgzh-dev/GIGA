@@ -8,12 +8,6 @@
     "binding": "ASSETS",
     "run_worker_first": true
   },
-  "vars": {
-    "ADMIN_TOKEN": "12345678901234567890123456789012",
-    "GIGA_ENV": "production",
-    "GIGA_UK_CLIENT_ID": "91bdef05-d755-49d7-9284-89b9df68cf90",
-    "GIGA_UK_CLIENT_SECRET": "a82ca463fcf64ae9921152047b57ae64"
-  },
   "d1_databases": [
     {
       "binding": "DB",
@@ -21,5 +15,14 @@
       "database_id": "b91c70c7-3616-49a5-8820-b10620851ea0",
       "migrations_dir": "./migrations"
     }
-  ]
+  ],
+  "keep_vars": true,
+  "vars": {
+    "GIGA_ENV": "production"
+  },
+  "triggers": {
+    "crons": [
+      "*/15 * * * *"
+    ]
+  }
 }

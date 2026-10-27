@@ -1,0 +1,6 @@
+CREATE TABLE IF NOT EXISTS giga_products (
+ market TEXT NOT NULL, sku TEXT NOT NULL, payload TEXT NOT NULL,
+ published INTEGER NOT NULL DEFAULT 0, updated_at INTEGER NOT NULL,
+ PRIMARY KEY(market,sku)
+);
+CREATE TABLE IF NOT EXISTS sync_locks (market TEXT PRIMARY KEY, until_at INTEGER NOT NULL);

@@ -13,3 +13,15 @@ async function shopSave(input){try{const result=await api({...input,market:$('ma
 $('pricingForm').onsubmit=async e=>{e.preventDefault();await shopSave({operation:'shop.settings',multiplier:Number($('multiplier').value),skus:$('pilotSkus').value.split(/[,，\n]/).map(s=>s.trim()).filter(Boolean)});};
 $('manualForm').onsubmit=async e=>{e.preventDefault();const product=Object.fromEntries(new FormData(e.target));for(const key of ['cost','freight','stock'])product[key]=Number(product[key]);await shopSave({operation:'shop.product',multiplier:Number($('multiplier').value),product});};
 $('loadProducts').onclick=async()=>{const r=await shopSave({operation:'shop.list'});if(r){$('multiplier').value=r.settings.multiplier;$('pilotSkus').value=JSON.parse(r.settings.pilot_skus).join(', ');}};
+
+async function showGiga(){
+ const market=$('market').value,r=await shopSave({operation:'shop.gigaList'});if(!r||market!==$('market').value)return;
+ $('gigaProducts').replaceChildren(...r.products.map(p=>{
+  const row=document.createElement('p'),text=document.createElement('span');
+  text.textContent=`${p.sku} · ${p.title||''} · ${p.currency||''} ${p.price??'—'} · 库存 ${p.stock} · ${p.error||(p.validUntil<=Date.now()?'已过期':p.published?'已上架':'草稿')} `;
+  const button=document.createElement('button');button.type='button';button.textContent=p.published?'下架':'上架';button.onclick=async()=>{if(market!==$('market').value)return;button.disabled=true;await shopSave({operation:'shop.publish',sku:p.sku,published:!p.published});await showGiga();};row.append(text,button);return row;
+ }));
+}
+$('listGiga').onclick=showGiga;
+$('importGiga').onclick=async()=>{$('importGiga').disabled=true;$('message').textContent='正在读取商品详情、价格和库存…';try{await shopSave({operation:'shop.import'});await showGiga();}finally{$('importGiga').disabled=false;}};
+$('market').addEventListener('change',()=>{$('gigaProducts').replaceChildren();});
